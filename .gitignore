@@ -1,3 +1,4 @@
+.env
 venvMGP
 .ipynb_checkpoints
 __pycache__/
