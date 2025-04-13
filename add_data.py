@@ -70,7 +70,7 @@ sqlite3.connect(db_sqlite).close()
 
 
 '''-------------------------------GERANDO COLUNA num_students (Número de filhos)-------------------------------'''
-
+###################### AQUI ESCOLHE A QUANTIDADE DE DADOS DO BANCO QUE VAI SER CARREGADA##########################
 df_optimized = df.head(50).copy()
 #df_optimized = df.copy()
 
@@ -104,6 +104,49 @@ def count_siblings(idx, advisors):
     return len(siblings)
 
 df_optimized["num_siblings"] = df_optimized.apply(lambda row: count_siblings(row.name, row["advisor_ids"]), axis=1)
+
+## Salvando os novos dados
+#df_optimized.to_feather("./data/mgp_optimized.feather")
+
+'''-------------------------------GERANDO COLUNA generation (Distância desde o nó raiz)-------------------------------'''
+# Mapeia cada pesquisador para sua lista de orientadores
+advisor_map = dict(zip(df_optimized["researcher_id"], df_optimized["advisor_ids"]))
+
+# Armazena os IDs válidos para evitar erros com orientadores ausentes
+ids_validos = set(df_optimized["researcher_id"])
+
+# Cache para memoização (melhora performance e evita recálculo)
+geracao_cache = {}
+
+def cont_geracao(researcher_id):
+    # Se já calculamos a geração desse pesquisador, retornamos do cache
+    if researcher_id in geracao_cache:
+        #print("USOU CACHE")
+        return geracao_cache[researcher_id]
+    
+    orientadores = [int(oid) for oid in advisor_map.get(researcher_id, [])]
+    
+    # Se não há orientador ou se nenhum deles está no dataset, atribui a geração 0
+    if not orientadores or all(oid not in ids_validos for oid in orientadores):
+        geracao_cache[researcher_id] = 0
+        return 0
+
+    # Calcula a geração de cada orientador
+    max_geracao = 0
+    for oid in orientadores:
+        if oid in ids_validos:
+            geracao_orientador = cont_geracao(oid)
+            max_geracao = max(max_geracao, geracao_orientador)
+
+    geracao_final = max_geracao + 1
+    geracao_cache[researcher_id] = geracao_final
+    #print("Geração maior que 0 do pesquisador", researcher_id, ":", geracao_final)
+    return geracao_final
+
+# Aplica a função em todos os pesquisadores
+df_optimized["generation"] = df_optimized["researcher_id"].apply(cont_geracao)
+
+
 
 ## Salvando os novos dados
 df_optimized.to_feather("./data/mgp_optimized.feather")
