@@ -103,7 +103,8 @@ def count_siblings(idx, advisors):
     siblings.discard(idx)  # Remove ele mesmo
     return len(siblings)
 
-df_optimized["num_siblings"] = df_optimized.apply(lambda row: count_siblings(row.name, row["advisor_ids"]), axis=1)
+tqdm.pandas(desc="Calculando número de irmãos")
+df_optimized["num_siblings"] = df_optimized.progress_apply(lambda row: count_siblings(row.name, row["advisor_ids"]), axis=1)
 
 ## Salvando os novos dados
 #df_optimized.to_feather("./data/mgp_optimized.feather")
@@ -144,8 +145,8 @@ def cont_geracao(researcher_id):
     return geracao_final
 
 # Aplica a função em todos os pesquisadores
-df_optimized["generation"] = df_optimized["researcher_id"].apply(cont_geracao)
-
+tqdm.pandas(desc="Calculando o número das gerações")
+df_optimized["generation"] = df_optimized["researcher_id"].progress_apply(cont_geracao)
 
 
 ## Salvando os novos dados
