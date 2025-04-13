@@ -1,6 +1,7 @@
 import sqlite3
 import pandas as pd
 from tqdm import tqdm
+from collections import defaultdict
 
 
 '''-------------------------------FUNÇÕES-------------------------------'''
@@ -68,10 +69,10 @@ sqlite3.connect(db_sqlite).close()
 
 
 
-'''-------------------------------GERANDO O NOVO BANCO-------------------------------'''
+'''-------------------------------GERANDO COLUNA num_students (Número de filhos)-------------------------------'''
 
-#df_optimized = df.head(50).copy()
-df_optimized = df.copy()
+df_optimized = df.head(50).copy()
+#df_optimized = df.copy()
 
 df_optimized["advisor_ids"] = df_optimized["advisor_ids"].apply(lambda x: x.split(",") if x else [])  # transforma os ids do orientadores em uma lista Python
 df_optimized["year"] = pd.to_numeric(df_optimized["year"], errors="coerce")                           # converte o ano em número
@@ -81,16 +82,34 @@ df_optimized["num_advisors"] = df_optimized["advisor_ids"].apply(len)           
 tqdm.pandas(desc="Calculando número de alunos")
 df_optimized["num_students"] = df_optimized["researcher_id"].progress_apply(lambda rid: len(get_advisor_and_student_ids(rid)[1]))
 
+## Salvando os novos dados
+#df_optimized.to_feather("./data/mgp_optimized-num_students.feather")
+
+
+'''-------------------------------GERANDO COLUNA num_siblings (Número de irmãos)-------------------------------'''
+### Listando quantidade de irmãos acadêmicos
+# Mapeia orientadores → lista de orientandos
+advisor_to_students = defaultdict(set)
+
+for idx, advisors in df_optimized["advisor_ids"].items():
+    for advisor in advisors:
+        advisor_to_students[advisor].add(idx)
+
+# Agora calcula o número de irmãos para cada pesquisador
+def count_siblings(idx, advisors):
+    siblings = set()
+    for advisor in advisors:
+        siblings.update(advisor_to_students[advisor])
+    siblings.discard(idx)  # Remove ele mesmo
+    return len(siblings)
+
+df_optimized["num_siblings"] = df_optimized.apply(lambda row: count_siblings(row.name, row["advisor_ids"]), axis=1)
+
+## Salvando os novos dados
 df_optimized.to_feather("./data/mgp_optimized.feather")
 
 
-
-
-
-
-'''SALVANDO OS NOVOS DADOS'''
-
-
+## Lendo o novo dataframe
 df_optimized = pd.read_feather("./data/mgp_optimized.feather")
 
 print("Novo banco:\n", df_optimized.tail(5), "\n\n...tarefa finalizada.")
