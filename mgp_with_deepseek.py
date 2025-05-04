@@ -1,5 +1,16 @@
 import os
+import sqlite3
+
 from openai import OpenAI
+
+def search_db(db_sqlite, query, params=()):
+  '''Essa função usa query e parâmetros para buscar no banco'''
+
+  with sqlite3.connect(db_sqlite) as conn:
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+
+        return cursor.fetchall()
 
 def generate_sql_query(user_query):
     '''Essa função usa IA para converter pergunta em SQL parametrizado.'''
@@ -47,6 +58,9 @@ def generate_sql_query(user_query):
 
     return eval(response.choices[0].message.content.strip())
 
+
+# Caminho onde o banco está/será salvo
+db_sqlite = "./data/mgp.sqlite"
 
 
 client = OpenAI(
