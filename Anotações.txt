@@ -1,0 +1,5 @@
+Pesquisadores com ciclos na genealogia:
+IDs: 44767, 160529, 291585
+
+Pesquisadores famosos para testar:
+Leonhard Euler, ID: 38586
